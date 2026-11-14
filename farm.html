@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Огород</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--gold:#e3b64b;--text:#f4efe3;--dim:#a8c1b3;--bg1:#2b6350;--bg2:#142a20}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg2);color:var(--text);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:manipulation}
+body{background:radial-gradient(120% 70% at 50% 0,var(--bg1),var(--bg2) 70%) fixed;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+#app{max-width:460px;margin:0 auto;padding:12px 12px 28px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ttl{font:700 22px Georgia,serif;color:var(--gold)}
+.chips{display:flex;gap:6px}
+.chip{padding:5px 11px;border-radius:99px;background:rgba(0,0,0,.3);box-shadow:0 0 0 1px rgba(255,255,255,.12);font-weight:700;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bed{position:relative;aspect-ratio:1;border:0;border-radius:18px;padding:6px;color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;font:inherit;font-size:12px;
+background:linear-gradient(160deg,#6b4a2b,#3f2a16);box-shadow:inset 0 0 0 2px rgba(255,255,255,.1),0 4px 10px rgba(0,0,0,.3)}
+.bed .ic{font-size:34px;line-height:1}
+.bed b{font-size:12.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bed.empty{background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 2px rgba(255,255,255,.14);color:var(--dim)}
+.bed.empty.can{box-shadow:inset 0 0 0 2px var(--gold);color:var(--gold)}
+.bed.lock{background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);color:var(--dim);opacity:.7}
+.bed.lock.next{opacity:1;box-shadow:inset 0 0 0 2px rgba(227,182,75,.6);color:var(--gold)}
+.bed.grow .ic{opacity:.55;filter:grayscale(.4)}
+.bed.rdy{box-shadow:inset 0 0 0 3px var(--gold),0 0 16px rgba(227,182,75,.55)}
+.bed.rdy .ic{animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-5px) scale(1.08)}}
+.pb{position:absolute;left:10px;right:10px;bottom:7px;height:4px;border-radius:9px;background:rgba(0,0,0,.4);overflow:hidden}
+.pb i{display:block;height:100%;background:var(--gold)}
+.box{border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(0,0,0,.3));box-shadow:0 0 0 1px rgba(255,255,255,.1),0 8px 20px rgba(0,0,0,.25);padding:14px;margin-top:12px}
+.box h3{margin:0 0 10px;font:700 17px Georgia,serif;color:var(--gold);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.box h3 small{font:500 12.5px system-ui;color:var(--dim)}
+.btn{border:0;border-radius:14px;padding:11px 18px;font:700 15px system-ui;background:linear-gradient(#f0c75a,#d9a634);color:#2a2000;box-shadow:0 3px 0 #a47a16}
+.btn.sec{background:rgba(255,255,255,.14);color:var(--text);box-shadow:none}
+.btn:disabled{opacity:.4}
+.btn.wide{width:100%;margin-top:10px}
+.seeds{display:flex;flex-wrap:wrap;gap:7px}
+.sd{border:0;border-radius:12px;padding:7px 11px;background:rgba(0,0,0,.3);color:var(--text);font:600 14px system-ui;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.sd.on{box-shadow:inset 0 0 0 2px var(--gold);background:rgba(227,182,75,.18)}
+.note{color:var(--dim);font-size:13px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.row:first-of-type{border-top:0}
+.row .ic{font-size:28px}.row .n{flex:1;min-width:0}.row .n b{display:block}
+.row .n small{color:var(--dim);font-size:12.5px}
+.row .btn{padding:8px 11px;font-size:13px}
+.rr{font-size:11.5px;padding:1px 7px;border-radius:8px;background:rgba(255,255,255,.12);margin-left:5px;font-weight:600;white-space:nowrap}
+#toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#000d;color:#fff;padding:9px 14px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;z-index:9;text-align:center}
+#toast.on{opacity:1}
+.mid{text-align:center;padding:60px 20px}
+</style>
+</head>
+<body>
+<div id="app"><div class="mid"><h2 class="ttl">🌱 Огород</h2><p class="note">Загрузка…</p></div></div>
+<div id="toast"></div>
+<script>
+'use strict';
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+const app = document.getElementById('app');
+let S = null, sel = null, busy = false, t0 = 0, refs = [], shopRef = null;
+const RC = { common: '#d9d9d9', uncommon: '#7fe08a', rare: '#7fb8ff', epic: '#c79bff', legendary: '#ffb25c', mythic: '#ff7a7a' };
+const fmt = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+const dur = s => { s = Math.max(0, Math.ceil(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} ч ${m} мин` : m ? `${m} мин ${s % 60} с` : `${s} с`; };
+const cat = id => S.catalog.find(c => c.id === id);
+function h(tag, cls, ...kids) {
+  const e = document.createElement(tag); if (cls) e.className = cls;
+  kids.forEach(k => { if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : document.createTextNode(k)); });
+  return e;
+}
+function btn(text, cls, fn, dis) { const b = h('button', 'btn ' + (cls || ''), text); b.disabled = !!dis; b.onclick = fn; return b; }
+function toast(t) { const e = document.getElementById('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2400); }
+function hap(k) { try { tg.HapticFeedback.notificationOccurred(k); } catch (e) {} }
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'X-Init-Data': tg.initData, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+function setState(s) { S = s; t0 = Date.now(); if (sel && !S.seeds[sel]) sel = null; render(); }
+async function load() {
+  try { setState(await api('/api/garden')); }
+  catch (e) { app.replaceChildren(h('div', 'mid', h('h2', 'ttl', 'Нет связи'), h('p', 'note', 'Сервер просыпается или вы открыли не из Telegram.'), btn('Повторить', '', load))); }
+}
+async function act(name, body, ok) {
+  if (busy) return; busy = true;
+  try {
+    const r = await api('/api/garden/' + name, body || {});
+    if (r.state) setState(r.state);
+    if (r.error) { toast(r.error); hap('error'); } else { hap('success'); if (ok) toast(ok(r)); }
+  } catch (e) { toast('Нет связи, попробуйте ещё раз'); }
+  busy = false;
+}
+
+const left = p => Math.max(0, p.left - (Date.now() - t0) / 1000);
+
+function bedEl(i) {
+  const p = S.plots.find(x => x.slot === i);
+  if (i >= S.beds) {
+    const next = i === S.beds;
+    const b = h('button', 'bed lock' + (next ? ' next' : ''), h('span', 'ic', '🔒'), next ? h('b', '', fmt(S.bed_cost) + ' ♠️') : h('b', '', 'Закрыто'));
+    b.onclick = () => next ? act('bed', {}, () => 'Новая грядка открыта!') : toast('Сначала откройте предыдущую грядку');
+    return b;
+  }
+  if (!p) {
+    const b = h('button', 'bed empty' + (sel ? ' can' : ''), h('span', 'ic', '➕'), h('b', '', sel ? 'Посадить' : 'Пусто'));
+    b.onclick = () => sel ? act('plant', { slot: i, seed: sel }) : toast('Сначала выберите семя ниже');
+    return b;
+  }
+  const c = cat(p.seed), ready = left(p) <= 0;
+  const b = h('button', 'bed ' + (ready ? 'rdy' : 'grow'), h('span', 'ic', c.icon), h('b', '', c.name));
+  const t = h('span', '', ready ? 'Собрать!' : dur(left(p)));
+  b.append(t);
+  if (!ready) { const bar = h('i'); bar.style.width = '0%'; b.append(h('div', 'pb', bar)); refs.push({ p, c, t, bar, b }); }
+  b.onclick = () => ready ? act('harvest', { slot: i }, r => r.jokers ? '🍀 Нашли 🃏 Джокера!' : `${c.icon} Собрано`) : toast(`Растёт: ещё ${dur(left(p))}`);
+  return b;
+}
+
+function render() {
+  refs = [];
+  const s = S, kids = [];
+  kids.push(h('div', 'top', h('div', 'ttl', '🌱 Огород'), h('div', 'chips', h('div', 'chip', fmt(s.coins) + ' ♠️'), h('div', 'chip', fmt(s.jokers) + ' 🃏'))));
+  const grid = h('div', 'grid');
+  for (let i = 0; i < s.max_beds; i++) grid.append(bedEl(i));
+  kids.push(grid);
+  const anyReady = s.plots.some(p => left(p) <= 0);
+  if (anyReady) kids.push(btn('🧺 Собрать всё созревшее', 'wide', () => act('harvest', {}, r => `Собрано: ${r.harvested}` + (r.jokers ? ' · 🍀 +🃏' : ''))));
+
+  const seedIds = Object.keys(s.seeds);
+  const sb = h('div', 'box', h('h3', '', 'Мои семена', h('small', '', 'выберите и сажайте на грядку')));
+  if (!seedIds.length) sb.append(h('p', 'note', 'Семян нет. Купите их в магазине ниже.'));
+  else {
+    const w = h('div', 'seeds');
+    seedIds.forEach(id => { const c = cat(id), b = h('button', 'sd' + (sel === id ? ' on' : ''), `${c.icon} ${c.name} ×${s.seeds[id]}`); b.onclick = () => { sel = sel === id ? null : id; render(); }; w.append(b); });
+    sb.append(w);
+  }
+  kids.push(sb);
+
+  const cropIds = Object.keys(s.crops), total = cropIds.reduce((a, id) => a + cat(id).sell * s.crops[id], 0);
+  const cb = h('div', 'box', h('h3', '', 'Урожай'));
+  if (!cropIds.length) cb.append(h('p', 'note', 'Пока пусто. Соберите созревшие растения.'));
+  else {
+    const w = h('div', 'seeds');
+    cropIds.forEach(id => w.append(h('span', 'sd', `${cat(id).icon} ×${s.crops[id]}`)));
+    cb.append(w, btn(`💰 Продать всё за ${fmt(total)} ♠️`, 'wide', () => act('sell', {}, r => `💰 +${fmt(r.sold)} ♠️`)));
+  }
+  kids.push(cb);
+
+  shopRef = h('small', '', '');
+  const shop = h('div', 'box', h('h3', '', 'Магазин семян', shopRef));
+  s.catalog.filter(c => s.shop.includes(c.id)).forEach(c => {
+    const [ri, rn] = s.rarity[c.rarity];
+    const rr = h('span', 'rr', `${ri} ${rn}`); rr.style.color = RC[c.rarity];
+    const can1 = s.coins >= c.price, can5 = s.coins >= c.price * 5;
+    shop.append(h('div', 'row', h('span', 'ic', c.icon),
+      h('div', 'n', h('b', '', c.name, rr), h('small', '', `растёт ${dur(c.grow)} · продажа ${fmt(c.sell)} ♠️`)),
+      btn(`${fmt(c.price)} ♠️`, can1 ? '' : 'sec', () => act('buy', { seed: c.id, qty: 1 }, r => r.msg)),
+      btn('×5', can5 ? '' : 'sec', () => act('buy', { seed: c.id, qty: 5 }, r => r.msg))));
+  });
+  kids.push(shop);
+  app.replaceChildren(...kids);
+  tick();
+}
+
+function tick() {
+  if (!S) return;
+  const sh = S.shop_in - (Date.now() - t0) / 1000;
+  if (shopRef) shopRef.textContent = 'обновится через ' + dur(sh);
+  if (sh <= -1 && !busy) { t0 = Date.now(); S.shop_in = 1800; load(); return; }
+  let changed = false;
+  refs.forEach(r => {
+    const l = left(r.p);
+    if (l <= 0) { changed = true; return; }
+    r.t.textContent = dur(l);
+    r.bar.style.width = (100 - 100 * l / r.c.grow) + '%';
+  });
+  if (changed) render();
+}
+setInterval(tick, 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) load(); });
+load();
+</script>
+</body>
+</html>
