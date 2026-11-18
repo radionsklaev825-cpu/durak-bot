@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Рыбалка</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--gold:#e3b64b;--text:#f4efe3;--dim:#a8c1b3;--bg1:#2b6350;--bg2:#142a20}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg2);color:var(--text);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:manipulation}
+body{background:radial-gradient(120% 70% at 50% 0,var(--bg1),var(--bg2) 70%) fixed;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+#app{max-width:460px;margin:0 auto;padding:12px 12px 28px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ttl{font:700 22px Georgia,serif;color:var(--gold)}
+.chips{display:flex;gap:6px}
+.chip{padding:5px 11px;border-radius:99px;background:rgba(0,0,0,.3);box-shadow:0 0 0 1px rgba(255,255,255,.12);font-weight:700;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bed{position:relative;aspect-ratio:1;border:0;border-radius:18px;padding:6px;color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;font:inherit;font-size:12px;
+background:linear-gradient(160deg,#6b4a2b,#3f2a16);box-shadow:inset 0 0 0 2px rgba(255,255,255,.1),0 4px 10px rgba(0,0,0,.3)}
+.bed .ic{font-size:34px;line-height:1}
+.bed b{font-size:12.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bed.empty{background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 2px rgba(255,255,255,.14);color:var(--dim)}
+.bed.empty.can{box-shadow:inset 0 0 0 2px var(--gold);color:var(--gold)}
+.bed.lock{background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);color:var(--dim);opacity:.7}
+.bed.lock.next{opacity:1;box-shadow:inset 0 0 0 2px rgba(227,182,75,.6);color:var(--gold)}
+.bed.grow .ic{opacity:.55;filter:grayscale(.4)}
+.bed.rdy{box-shadow:inset 0 0 0 3px var(--gold),0 0 16px rgba(227,182,75,.55)}
+.bed.rdy .ic{animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-5px) scale(1.08)}}
+.pb{position:absolute;left:10px;right:10px;bottom:7px;height:4px;border-radius:9px;background:rgba(0,0,0,.4);overflow:hidden}
+.pb i{display:block;height:100%;background:var(--gold)}
+.box{border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(0,0,0,.3));box-shadow:0 0 0 1px rgba(255,255,255,.1),0 8px 20px rgba(0,0,0,.25);padding:14px;margin-top:12px}
+.box h3{margin:0 0 10px;font:700 17px Georgia,serif;color:var(--gold);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.box h3 small{font:500 12.5px system-ui;color:var(--dim)}
+.btn{border:0;border-radius:14px;padding:11px 18px;font:700 15px system-ui;background:linear-gradient(#f0c75a,#d9a634);color:#2a2000;box-shadow:0 3px 0 #a47a16}
+.btn.sec{background:rgba(255,255,255,.14);color:var(--text);box-shadow:none}
+.btn:disabled{opacity:.4}
+.btn.wide{width:100%;margin-top:10px}
+.seeds{display:flex;flex-wrap:wrap;gap:7px}
+.sd{border:0;border-radius:12px;padding:7px 11px;background:rgba(0,0,0,.3);color:var(--text);font:600 14px system-ui;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.sd.on{box-shadow:inset 0 0 0 2px var(--gold);background:rgba(227,182,75,.18)}
+.note{color:var(--dim);font-size:13px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.row:first-of-type{border-top:0}
+.row .ic{font-size:28px}.row .n{flex:1;min-width:0}.row .n b{display:block}
+.row .n small{color:var(--dim);font-size:12.5px}
+.row .btn{padding:8px 11px;font-size:13px}
+.rr{font-size:11.5px;padding:1px 7px;border-radius:8px;background:rgba(255,255,255,.12);margin-left:5px;font-weight:600;white-space:nowrap}
+#toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#000d;color:#fff;padding:9px 14px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;z-index:9;text-align:center}
+#toast.on{opacity:1}
+.pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;gap:12px}
+.pager::-webkit-scrollbar{display:none}
+.page{flex:0 0 100%;scroll-snap-align:start;min-width:0}
+.fh{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 8px}
+.fh b{font:700 18px Georgia,serif}.fh span{color:var(--dim);font-size:13px}
+.dots{display:flex;justify-content:center;gap:8px;margin:10px 0 2px}
+.dots button{width:9px;height:9px;padding:0;border:0;border-radius:9px;background:rgba(255,255,255,.25)}
+.dots button.on{background:var(--gold);width:22px}
+.lockf{text-align:center;padding:34px 16px}.lockf .big{font-size:52px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{flex:1;border:0;border-radius:14px;padding:10px;font:700 14px system-ui;background:rgba(0,0,0,.3);color:var(--dim)}
+.tab.on{background:var(--gold);color:#2a2000}
+.mid{text-align:center;padding:60px 20px}
+.meter{height:10px;border-radius:9px;background:rgba(0,0,0,.4);overflow:hidden;margin:12px 0 6px}
+.meter i{display:block;height:100%;background:var(--gold)}
+.hot{background:linear-gradient(#ff7a6a,#e5533d);color:#fff;box-shadow:0 3px 0 #a52b1d;font-size:20px;padding:16px;animation:hotp .5s ease-in-out infinite alternate}
+@keyframes hotp{to{transform:scale(1.03)}}
+.scene{border-radius:20px;padding:16px 14px 12px;text-align:center;background:linear-gradient(180deg,#1b6a8c,#0b2f52);box-shadow:0 0 0 1px rgba(255,255,255,.12),0 8px 20px rgba(0,0,0,.25);position:relative;overflow:hidden}
+.scene .big{font-size:54px;line-height:1.1;animation:bobs 3s ease-in-out infinite}
+@keyframes bobs{50%{transform:translateY(-6px)}}
+.scene.sea{background:linear-gradient(180deg,#14507c,#041726)}
+.scene.river{background:linear-gradient(180deg,#2a8a8a,#0e3d4a)}
+.hearts{letter-spacing:3px}
+.tr{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.08)}
+.tr:first-of-type{border-top:0}.tr .n{flex:1;min-width:0}.tr small{display:block;color:var(--dim);font-size:12.5px}
+</style>
+</head>
+<body>
+<div id="app"><div class="mid"><h2 class="ttl">🎣 Рыбалка</h2><p class="note">Загрузка…</p></div></div>
+<div id="toast"></div>
+<script>
+'use strict';
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+const app = document.getElementById('app');
+let S = null, busy = false, t0 = 0, cr = [];
+const RC = { common: '#d9d9d9', uncommon: '#7fe08a', rare: '#7fb8ff', epic: '#c79bff', legendary: '#ffb25c', mythic: '#ff7a7a' };
+const fmt = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+const dur = s => { s = Math.max(0, Math.ceil(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} ч ${m} мин` : m ? `${m} мин ${s % 60} с` : `${s} с`; };
+function h(tag, cls, ...kids) {
+  const e = document.createElement(tag); if (cls) e.className = cls;
+  kids.forEach(k => { if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : document.createTextNode(k)); });
+  return e;
+}
+function btn(text, cls, fn, dis) { const b = h('button', 'btn ' + (cls || ''), text); b.disabled = !!dis; b.onclick = fn; return b; }
+function toast(t) { const e = document.getElementById('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2400); }
+function hap(k) { try { tg.HapticFeedback.notificationOccurred(k); } catch (e) {} }
+function ask(msg, ok) { if (tg && tg.showConfirm) tg.showConfirm(msg, y => { if (y) ok(); }); else if (confirm(msg)) ok(); }
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? 'POST' : 'GET', headers: { 'X-Init-Data': tg.initData, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+function setState(s) { S = s; t0 = Date.now(); render(); if (s.fish && s.fish.note) toast(s.fish.note); }
+async function load() {
+  try { setState(await api('/api/fish')); }
+  catch (e) { app.replaceChildren(h('div', 'mid', h('h2', 'ttl', 'Нет связи'), h('p', 'note', 'Сервер просыпается или вы открыли не из Telegram.'), btn('Повторить', '', load))); }
+}
+async function act(name, body, ok) {
+  if (busy) return; busy = true;
+  try {
+    const r = await api('/api/fish/' + name, body || {});
+    if (r.state) setState(r.state);
+    if (r.error) { toast(r.error); hap('error'); } else { hap('success'); if (ok) toast(ok(r)); }
+  } catch (e) { toast('Нет связи, попробуйте ещё раз'); }
+  busy = false;
+}
+
+function lockedView(kids) {
+  const s = S;
+  if (s.meat_done) {
+    kids.push(h('div', 'box lockf', h('div', 'big', '🔓'), h('h3', '', 'Мясокомбинат прокачан!'),
+      h('p', 'note', 'Теперь можно открыть рыбалку: три водоёма, снасти до 30 уровня, наживки, сеть и даже сундуки с колодами.'),
+      btn(`🎣 Открыть рыбалку · ${fmt(s.fish_cost)} ♠️`, 'wide' + (s.coins >= s.fish_cost ? '' : ' sec'), () => act('unlock', {}, () => '🎉 Рыбалка открыта!'))));
+    return;
+  }
+  const m = h('div', 'meter', h('i')); m.firstChild.style.width = (100 * s.meat_cells / s.meat_total) + '%';
+  kids.push(h('div', 'box lockf', h('div', 'big', '🔒'), h('h3', '', 'Рыбалка заблокирована'),
+    h('p', 'note', `Прокачайте мясокомбинат до конца: откройте все 3 страницы и все ${s.meat_total} ячеек. После этого рыбалку можно будет открыть за ${fmt(s.fish_cost)} ♠️.`),
+    m, h('p', 'note', `Страниц мясокомбината: ${s.meat_pages} из 3 · ячеек: ${s.meat_cells} из ${s.meat_total}`),
+    btn('🥩 В мясокомбинат', 'wide', () => { location.href = '/meat' + location.hash; })));
+}
+
+const TIER_COL = ['#d2b48c', '#7fd6c2', '#8fb8ff', '#c79bff', '#ffd24a'];
+const TK_FX = { rod: 'шанс редкой рыбы и сундуков, урон по боссу', line: 'шире окно подсечки, крепче леска, больше улов сетью',
+                reel: 'быстрее поклёвка, меньше потяжек', hooks: 'дороже улов, шанс крита по боссу' };
+const CHEST_NAME = { bronze: '📦 Обычный сундук', rare: '💠 Редкий сундук', gold: '🎁 Золотой сундук', sea: '🌊 Морской сундук' };
+const PHASES = ['Щупальца', 'Перетягивание', 'Глаз'];
+let cpIdx = 0, selBait = null, reloading = false;
+
+function fishView(kids) {
+  const s = S, f = s.fish, el = () => (Date.now() - t0) / 1000;
+  const fid = id => f.catalog.find(x => x.id === id);
+  const lv = f.lv, minLv = Math.min(lv.rod, lv.line, lv.reel, lv.hooks);
+  const cast = f.cast;
+  const pondIdx = () => cast ? cast.pond : Math.min(cpIdx, f.ponds - 1);
+  const pondFish = (p, bi) => [0, 1, 2].map(sl => fid(`${p}${bi}${sl}`).name).join(', ');
+
+  // водоёмы: листаются
+  const pager = h('div', 'pager'), dots = h('div', 'dots');
+  for (let p = 0; p < 3; p++) {
+    const pg = h('div', 'page'), [pi, pn] = f.ponds_cat[p];
+    if (p < f.ponds) {
+      pg.append(h('div', 'scene ' + ['', 'river', 'sea'][p], h('div', 'big', pi), h('h3', '', pn), h('p', 'note', ['Спокойная вода: карась, лещ, щука.', 'Течение и крупная рыба: лосось, осётр.', 'Глубина и редкие великаны. Говорят, здесь живёт кто-то огромный…'][p])));
+    } else if (p === f.ponds) {
+      const ok = f.pond_ready;
+      pg.append(h('div', 'box lockf', h('div', 'big', '🔒'), h('h3', '', pn),
+        h('p', 'note', ok ? `Можно купить: там ловится более редкая и дорогая рыба.` : `Прокачайте все 4 снасти до ${f.pond_req} уровня (сейчас минимум ${minLv}), и можно будет купить водоём.`),
+        btn(`${pi} Купить водоём · ${fmt(f.pond_cost)} ♠️`, 'wide' + (ok && s.coins >= f.pond_cost ? '' : ' sec'), () => ok ? act('buypond', {}, () => `🎉 Открыт водоём «${pn}»!`) : toast(`Сначала прокачайте все снасти до ${f.pond_req} уровня`))));
+    } else {
+      pg.append(h('div', 'box lockf', h('div', 'big', '🔒'), h('h3', '', pn), h('p', 'note', 'Откроется после покупки предыдущего водоёма.')));
+    }
+    pager.append(pg);
+    const d = h('button', p === cpIdx ? 'on' : ''); d.onclick = () => pager.scrollTo({ left: p * pager.clientWidth, behavior: 'smooth' }); dots.append(d);
+  }
+  pager.addEventListener('scroll', () => { const i = Math.round(pager.scrollLeft / pager.clientWidth); if (i !== cpIdx) { cpIdx = i; [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i)); if (!cast) render(); } });
+  kids.push(pager, dots);
+  setTimeout(() => { pager.scrollLeft = cpIdx * pager.clientWidth; }, 0);
+
+  // панель ловли
+  const box = h('div', 'box');
+  if (!cast) {
+    if (!selBait || !f.baits.some(b => b.id === selBait)) selBait = (f.baits.find(b => (f.bait[b.id] || 0) > 0) || f.baits[0]).id;
+    const p = pondIdx(), bi = f.baits.findIndex(b => b.id === selBait);
+    box.append(h('h3', '', `🎣 Забросить удочку`, h('small', '', f.ponds_cat[p][1])));
+    const w = h('div', 'seeds');
+    f.baits.forEach(b => { const c = h('button', 'sd' + (selBait === b.id ? ' on' : ''), `${b.icon} ${b.name} ×${f.bait[b.id] || 0}`); c.onclick = () => { selBait = b.id; render(); }; w.append(c); });
+    box.append(w, h('p', 'note', `На эту наживку тут клюют: ${pondFish(p, bi)}.`));
+    const row = h('div', 'seeds'); row.style.marginTop = '8px';
+    row.append(btn('🎣 Забросить', '', () => cpIdx >= f.ponds ? toast('Этот водоём ещё закрыт') : act('cast', { pond: p, bait: selBait })),
+      btn('🕸 Бросить сеть', 'sec', () => f.net ? act('usenet', { pond: p }, r => `🕸 Поймано рыб: ${r.n}` + (r.broke ? ' · сеть порвалась' : '')) : toast('У вас нет сети: купите её ниже')));
+    box.append(row);
+  } else {
+    const boss = cast.fish === 'kraken';
+    const title = h('h3', ''), msg = h('p', 'note'), meter = h('div', 'meter', h('i')), big = btn('', 'wide hot', null);
+    big.style.display = 'none';
+    const hearts = h('p', 'hearts');
+    box.append(title, msg, meter, big);
+    if (boss) box.append(hearts);
+    const go = () => act(cast.state === 'wait' ? 'hook' : 'pull', {}, r => ({
+      fish: `🎣 ${r.fish ? fid(r.fish).icon + ' ' + fid(r.fish).name : ''}`, chest: `🎁 Сундук: ${CHEST_NAME[r.chest]}`, whale: '🐋 КИТ! Продайте его за 10 🃏',
+      kraken: '🐙 КРАКЕН! Тяните вовремя!', fight: 'Есть! Теперь тяните по сигналу', pull: 'Хорошо! Ждите следующую потяжку', hit: r.crit ? '💥 КРИТ по Кракену!' : '💥 Попадание!',
+      miss: '⚠️ Промах, леска ослабла', kraken_win: r.got ? '🐙 Кракен побеждён! Колода «Кракен» ваша!' : '🐙 Кракен побеждён, но колоды уже разобраны: +5 🃏' })[r.event]);
+    big.onclick = go;
+    const upd = () => {
+      const t = el();
+      if (cast.state === 'wait') {
+        const left = cast.bite_in - t;
+        if (left > 0) { title.textContent = '🎣 Ждём поклёвку…'; msg.textContent = 'Не торопитесь: подсечёшь рано, и рыба испугается.'; big.style.display = 'none'; meter.firstChild.style.width = '0%'; }
+        else { const wl = cast.win + left; title.textContent = '🐟 КЛЮЁТ!'; msg.textContent = 'Скорее подсекайте!'; big.textContent = 'ПОДСЕКАЙ!'; big.style.display = ''; meter.firstChild.style.width = (100 * Math.max(0, wl) / cast.win) + '%'; if (wl < -0.4 && !reloading) { reloading = true; load().finally(() => { reloading = false; }); } }
+      } else {
+        const left = cast.pull_in - t;
+        if (boss) { const ph = cast.hp > cast.maxhp * 2 / 3 ? 0 : cast.hp > cast.maxhp / 3 ? 1 : 2; title.textContent = `🐙 КРАКЕН · ${PHASES[ph]}`; hearts.textContent = 'Леска: ' + '❤️'.repeat(Math.max(0, cast.line_hp)) + ` · Босс: ${cast.hp}/${cast.maxhp}`; }
+        else title.textContent = `${fid(cast.fish).icon} ${fid(cast.fish).name} · потяжка ${cast.rnd + 1} из ${cast.rounds}`;
+        if (left > 0.15) { msg.textContent = 'Рыба упирается… ждите сигнал.'; big.style.display = 'none'; meter.firstChild.style.width = '0%'; }
+        else { const wl = cast.pull_win + left; msg.textContent = 'Сейчас!'; big.textContent = 'ТЯНИ!'; big.style.display = ''; meter.firstChild.style.width = (100 * Math.max(0, wl) / cast.pull_win) + '%'; if (wl < -0.4 && !reloading) { reloading = true; load().finally(() => { reloading = false; }); } }
+        if (boss) meter.firstChild.style.background = '#ff7a6a';
+      }
+    };
+    upd(); cr.push(upd);
+    box.append(btn('Смотать удочку (наживка пропадёт)', 'sec wide', () => act('reel_in', {}, () => 'Удочка смотана')));
+  }
+  kids.push(box);
+
+  // снасти
+  const tb = h('div', 'box', h('h3', '', 'Снасти', h('small', '', `макс. ${f.max_lv} уровень`)));
+  Object.keys(f.tackle).forEach(k => {
+    const t = f.tackle[k], L = lv[k], tier = Math.floor((L - 1) / 6), nm = h('b', '', `${t.name}: ${t.tiers[tier]}`);
+    nm.style.color = TIER_COL[tier];
+    tb.append(h('div', 'tr', h('span', 'ic', t.icon), h('div', 'n', nm, h('small', '', `ур. ${L}/${f.max_lv} · ${TK_FX[k]}`)),
+      L >= f.max_lv ? h('small', '', 'МАКС') : btn(`⬆️ ${fmt(f.up_cost[k])}`, s.coins >= f.up_cost[k] ? '' : 'sec', () => act('upgrade', { tackle: k }, () => `⬆️ ${t.name} улучшено`))));
+  });
+  kids.push(tb);
+
+  // наживка и сеть
+  const bb = h('div', 'box', h('h3', '', 'Наживка', h('small', '', 'любую можно купить сразу')));
+  f.baits.forEach((b, bi) => {
+    bb.append(h('div', 'tr', h('span', 'ic', b.icon), h('div', 'n', h('b', '', `${b.name} · есть ${f.bait[b.id] || 0}`), h('small', '', `${f.ponds_cat[pondIdx()][1]}: ${pondFish(pondIdx(), bi)}`)),
+      btn(`${fmt(b.price)} ♠️`, s.coins >= b.price ? '' : 'sec', () => act('buybait', { bait: b.id, qty: 1 })),
+      btn('×10', s.coins >= b.price * 10 ? '' : 'sec', () => act('buybait', { bait: b.id, qty: 10 }))));
+  });
+  bb.append(h('div', 'tr', h('span', 'ic', '🕸'), h('div', 'n', h('b', '', f.net ? 'Сеть цела' : 'Сеть'), h('small', '', '3–6 обычных и необычных рыб за заброс, рвётся через 5–10 забросов')),
+    btn(f.net ? 'есть' : `${fmt(f.net_cost)} ♠️`, f.net || s.coins < f.net_cost ? 'sec' : '', () => act('buynet', {}, () => '🕸 Сеть куплена'))));
+  kids.push(bb);
+
+  // улов
+  const ids = Object.keys(f.fish);
+  const coins = ids.reduce((a, id) => id === 'whale' ? a : a + Math.floor(fid(id).price * f.hooks_mul) * f.fish[id], 0), jk = (f.fish.whale || 0) * f.whale_jokers;
+  const fb = h('div', 'box', h('h3', '', 'Улов', h('small', '', `крючки: ×${f.hooks_mul.toFixed(2)} к цене`)));
+  if (!ids.length) fb.append(h('p', 'note', 'Пока пусто. Забросьте удочку или сеть.'));
+  else {
+    const w = h('div', 'seeds');
+    ids.forEach(id => { const x = fid(id), sp = h('span', 'sd', `${x.icon} ${x.name} ×${f.fish[id]}`); sp.style.color = RC[x.rarity]; w.append(sp); });
+    fb.append(w, btn(`💰 Продать улов за ${fmt(coins)} ♠️` + (jk ? ` и ${jk} 🃏` : ''), 'wide', () => act('sell', {}, r => `💰 +${fmt(r.coins)} ♠️` + (r.jokers ? ` и ${r.jokers} 🃏` : ''))));
+  }
+  kids.push(fb);
+}
+
+function render() {
+  cr = [];
+  const s = S, kids = [];
+  kids.push(h('div', 'top', h('div', 'ttl', '🎣 Рыбалка'), h('div', 'chips', h('div', 'chip', fmt(s.coins) + ' ♠️'), h('div', 'chip', fmt(s.jokers) + ' 🃏'))));
+  if (s.unlocked) fishView(kids); else lockedView(kids);
+  app.replaceChildren(...kids);
+  tick();
+}
+function tick() {
+  if (!S) return;
+  cr.forEach(f => f());
+}
+setInterval(tick, 250);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) load(); });
+load();
+</script>
+</body>
+</html>
